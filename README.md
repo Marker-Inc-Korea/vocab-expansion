@@ -4,8 +4,8 @@
 기존 Hugging Face Causal LM(예: Qwen3) 체크포인트에 대해
 
 - 토큰 임베딩 크기 확장(resize)
-- **공유 토큰(shared token)**의 ID 불일치(shift) 보정(토큰 문자열 기준 row 복사)
-- **신규 토큰(new token)**에 대해 AdaptiVocab 방식의 **Exponential Embedding Initialization** 적용
+- **공유 토큰(shared token)** 의 ID 불일치(shift) 보정(토큰 문자열 기준 row 복사)
+- **신규 토큰(new token)** 에 대해 AdaptiVocab 방식의 **Exponential Embedding Initialization** 적용
 - (옵션) special token id를 tokenizer와 config/generation_config에 동기화
 - (옵션) 결과 검증(공유 토큰 row 복사 무결성 / 신규 토큰 init 샘플 검사)
 
@@ -13,7 +13,7 @@
 
 > 참고 논문(AdaptiVocab):  
 > - *AdaptiVocab: Enhancing LLM Efficiency in Focused Domains through Lightweight Vocabulary Adaptation*  
-> - Itay Nakash, Nitay Calderon, Eyal Ben David, Elad Hoffer, Roi Reichart (COLM 2025 / arXiv:2503.19693) :contentReference[oaicite:1]{index=1}  
+> - Itay Nakash, Nitay Calderon, Eyal Ben David, Elad Hoffer, Roi Reichart (COLM 2025 / arXiv:2503.19693) 
 > - 링크:
 >   ```text
 >   https://arxiv.org/abs/2503.19693
@@ -24,19 +24,19 @@
 ## AdaptiVocab 논문은 “무엇”이고, “왜” 필요한가?
 
 ### 문제의식(왜?)
-일반-purpose LLM은 다양한 도메인을 커버하도록 학습되어 있지만, **특정 도메인(니치/전문 영역)** 에서 쓰면 “범용성”이 꼭 필요하지 않을 때가 많습니다. 그런데 자동회귀 디코딩은 **토큰 1개 생성마다 forward pass가 필요**해서, 토큰 수가 곧 지연/비용으로 이어집니다. :contentReference[oaicite:2]{index=2}
+일반-purpose LLM은 다양한 도메인을 커버하도록 학습되어 있지만, **특정 도메인(니치/전문 영역)** 에서 쓰면 “범용성”이 꼭 필요하지 않을 때가 많습니다. 그런데 자동회귀 디코딩은 **토큰 1개 생성마다 forward pass가 필요**해서, 토큰 수가 곧 지연/비용으로 이어집니다.
 
 AdaptiVocab은 여기서 관점을 바꿉니다:
 > “모델을 크게 바꾸기보다, **도메인에 맞춰 vocabulary(토크나이저)를 바꿔서** 토큰 수를 줄이면
 > 입력 처리/출력 생성이 빨라진다.”
 
-논문은 실제로 “도메인 특화 n-gram 토큰(n-token)”을 추가/교체해 **토큰 사용량을 25%+ 감소**시키면서 성능을 유지하는 방향을 제안합니다. :contentReference[oaicite:3]{index=3}
+논문은 실제로 “도메인 특화 n-gram 토큰(n-token)”을 추가/교체해 **토큰 사용량을 25%+ 감소**시키면서 성능을 유지하는 방향을 제안합니다. 
 
 ---
 
 ## AdaptiVocab 파이프라인(논문 전체 흐름)
 
-논문에서 제시한 AdaptiVocab은 크게 4단계입니다. :contentReference[oaicite:4]{index=4}
+논문에서 제시한 AdaptiVocab은 크게 4단계입니다.
 
 1) **Vocabulary modification**  
    도메인 코퍼스에서 “토큰 절감(token saving)”이 큰 n-token 후보를 고르고, 기존 토큰 일부를 교체
@@ -48,7 +48,7 @@ AdaptiVocab은 여기서 관점을 바꿉니다:
    새로 추가된 n-token 임베딩을 기존 토큰 임베딩으로부터 “구조를 반영”하여 초기화
 
 4) **Lightweight adaptation fine-tuning**  
-   전체 파라미터가 아니라 embedding 및 일부 레이어만 가볍게 미세조정(단일 GPU로 가능하다고 주장) :contentReference[oaicite:5]{index=5}
+   전체 파라미터가 아니라 embedding 및 일부 레이어만 가볍게 미세조정(단일 GPU로 가능하다고 주장)
 
 ---
 
@@ -65,11 +65,11 @@ AdaptiVocab은 여기서 관점을 바꿉니다:
 
 - **(B) Exponential embedding initialization (논문 §3.3 핵심)**
   - 논문은 “새 n-token은 constituent token 임베딩의 단순 평균보다,
-    자동회귀 생성 특성을 반영한 가중치가 좋다”고 주장합니다. :contentReference[oaicite:6]{index=6}
+    자동회귀 생성 특성을 반영한 가중치가 좋다”고 주장합니다.
   - 직관:
-    - **Input embedding**: n-token 내부에서 “마지막 토큰”이 다음 생성에 더 직접적으로 영향을 주므로 더 강조 :contentReference[oaicite:7]{index=7}
-    - **Output embedding(LM head)**: n-token을 한 번에 뽑게 하려면 “첫 토큰”이 더 dominant해야 반복을 줄이고 시작을 유도 :contentReference[oaicite:8]{index=8}
-  - 논문 수식(요지): 위치 i에 대해 지수 가중치로 정규화한 가중치 w를 사용 :contentReference[oaicite:9]{index=9}
+    - **Input embedding**: n-token 내부에서 “마지막 토큰”이 다음 생성에 더 직접적으로 영향을 주므로 더 강조 
+    - **Output embedding(LM head)**: n-token을 한 번에 뽑게 하려면 “첫 토큰”이 더 dominant해야 반복을 줄이고 시작을 유도
+  - 논문 수식(요지): 위치 i에 대해 지수 가중치로 정규화한 가중치 w를 사용
     - input:  `w_i ∝ exp(+2i)`
     - output: `w_i ∝ exp(-2i)`
     - (본 라이브러리는 일반화된 형태로 `alpha`를 노출하여 `w_i ∝ exp(±alpha·i)`로 구현)
