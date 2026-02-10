@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adaptivocab-expand"
+version = "0.1.0"
+description = "AdaptiVocab-style embedding initialization + alignment for expanded tokenizers (HF Transformers)."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "YOUR_NAME"}]
+dependencies = [
+  "torch",
+  "transformers>=4.40.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "ruff>=0.5.0",
+]
+
+[project.scripts]
+adaptivocab-expand = "adaptivocab_expand.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
